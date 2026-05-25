@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile SMS Server</title>
+    <!-- Using Inter font as a substitute for hashicorpSans per DESIGN.md -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Brand & Surface Colors */
+            --colors-canvas: #000000;
+            --colors-surface-1: #1a1b1e;
+            --colors-surface-2: #25282c;
+            --colors-hairline: rgba(178, 182, 189, 0.1);
+            --colors-inverse-canvas: #ffffff;
+
+            /* Text Colors */
+            --colors-ink: #ffffff;
+            --colors-ink-muted: #b2b6bd;
+            --colors-ink-subtle: #656a76;
+            --colors-inverse-ink: #000000;
+
+            /* Product Identity / Accent */
+            --colors-product-accent: #6366f1;
+            /* Matching the purple identity aesthetic */
+
+            /* Typography */
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, Segoe UI, helvetica, arial, sans-serif;
+
+            /* Spacing */
+            --spacing-xs: 8px;
+            --spacing-sm: 12px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+            --spacing-xxl: 48px;
+            --spacing-section: 96px;
+
+            /* Radii */
+            --rounded-md: 8px;
+            --rounded-lg: 12px;
+            --rounded-pill: 9999px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--colors-canvas);
+            color: var(--colors-ink);
+            font-family: var(--font-family);
+            font-weight: 500;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        /* Typography Hierarchy */
+        .display-lg {
+            font-size: 56px;
+            font-weight: 700;
+            line-height: 1.18;
+            letter-spacing: -1.6px;
+        }
+
+        .display-md {
+            font-size: 40px;
+            font-weight: 600;
+            line-height: 1.19;
+            letter-spacing: -1.0px;
+        }
+
+        .body-lg {
+            font-size: 18px;
+            font-weight: 500;
+            line-height: 1.69;
+            color: var(--colors-ink-muted);
+        }
+
+        .body {
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 1.50;
+        }
+
+        .body-sm {
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.71;
+            color: var(--colors-ink-muted);
+        }
+
+        .eyebrow {
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1.23;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            color: var(--colors-ink-muted);
+            margin-bottom: var(--spacing-sm);
+            display: block;
+        }
+
+        /* Layout Grid */
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-xxl);
+        }
+
+        .section {
+            margin-top: var(--spacing-section);
+            margin-bottom: var(--spacing-section);
+        }
+
+        /* Navigation */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 64px;
+            border-bottom: 1px solid var(--colors-hairline);
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+        }
+
+        /* Buttons */
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.29;
+            padding: 12px 20px;
+            border-radius: var(--rounded-md);
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .button:hover {
+            opacity: 0.9;
+        }
+
+        .button-primary {
+            background-color: var(--colors-inverse-canvas);
+            color: var(--colors-inverse-ink);
+        }
+
+        .button-secondary {
+            background-color: var(--colors-surface-2);
+            color: var(--colors-ink);
+            border: 1px solid var(--colors-hairline);
+        }
+
+        /* Hero */
+        .hero {
+            padding: var(--spacing-section) 0;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .hero p {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: var(--spacing-lg);
+            justify-content: center;
+        }
+
+        /* Cards */
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-xl);
+        }
+
+        @media (max-width: 1024px) {
+            .grid-3 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                padding: 0 var(--spacing-lg);
+            }
+
+            .display-lg {
+                font-size: 40px;
+            }
+        }
+
+        .feature-card {
+            background-color: var(--colors-surface-1);
+            border: 1px solid var(--colors-hairline);
+            border-radius: var(--rounded-lg);
+            padding: var(--spacing-lg);
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        .feature-card-accent {
+            background-color: var(--colors-product-accent);
+            color: var(--colors-inverse-ink);
+        }
+
+        .feature-card-accent p {
+            color: rgba(0, 0, 0, 0.8);
+        }
+
+        .card-title {
+            font-size: 22px;
+            font-weight: 600;
+            line-height: 1.18;
+            letter-spacing: -0.4px;
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--colors-canvas);
+            border-top: 1px solid var(--colors-hairline);
+            padding: 64px 0;
+            margin-top: var(--spacing-section);
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-xl);
+        }
+
+        .footer-links {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-lg);
+        }
+
+        .footer-links a {
+            color: var(--colors-ink-muted);
+            font-size: 14px;
+            display: block;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .footer-links a:hover {
+            color: var(--colors-ink);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <nav>
+            <div class="logo">Mobile SMS Server</div>
+            <div class="nav-links">
+                <a href="https://github.com/Mobile-SMS-Server" class="button button-secondary">GitHub Repository</a>
+            </div>
+        </nav>
+    </div>
+
+    <main class="container">
+        <!-- Hero Section -->
+        <section class="hero section">
+            <span class="eyebrow">Local Infrastructure</span>
+            <h1 class="display-lg">Turn your smartphone into a local SMS gateway.</h1>
+            <p class="body-lg">
+                Connect to your Android phone via REST API to programmatically send SMS messages over WiFi.
+                A free, 100% private alternative to cloud APIs, powered by Python, Kivy, and Flask.
+            </p>
+            <div class="hero-actions">
+                <a href="https://github.com/abhishekmallav/Mobile-SMS-Server" class="button button-primary">View on
+                    GitHub</a>
+                <a href="https://github.com/abhishekmallav/Mobile-SMS-Server/releases"
+                    class="button button-secondary">Download APK</a>
+            </div>
+        </section>
+
+        <!-- Use Case Section -->
+        <section class="section">
+            <span class="eyebrow">The Intuition</span>
+            <h2 class="display-md" style="margin-bottom: var(--spacing-xl);">Why pay for cloud SMS APIs when you already
+                have a phone plan?</h2>
+
+            <div class="grid-3">
+                <div class="feature-card feature-card-accent">
+                    <h3 class="card-title">Zero Cloud Costs</h3>
+                    <p class="body">During feature development, developers often need to test automated SMS messages.
+                        Utilize your unused mobile recharge SMS quotas instead of getting charged per message by cloud
+                        platforms.</p>
+                </div>
+                <div class="feature-card">
+                    <h3 class="card-title">100% Local & Private</h3>
+                    <p class="body">The app operates entirely on your local network. No external servers involved,
+                        keeping all your data and phone numbers off third-party databases.</p>
+                </div>
+                <div class="feature-card">
+                    <h3 class="card-title">Developer Ready</h3>
+                    <p class="body">With a built-in Flask background service, it exposes standard HTTP POST REST
+                        endpoints directly from your phone to your local dev environment.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Showcase -->
+        <section class="section">
+            <span class="eyebrow">Core Features</span>
+            <h2 class="display-md" style="margin-bottom: var(--spacing-xl);">Engineered for local networking</h2>
+
+            <div class="grid-3">
+                <div class="feature-card">
+                    <h3 class="card-title">RESTful API</h3>
+                    <p class="body">Simple `POST /api/sms` bindings expecting JSON payloads. Easy to integrate via curl,
+                        requests, or Postman.</p>
+                </div>
+                <div class="feature-card">
+                    <h3 class="card-title">Interactive UI</h3>
+                    <p class="body">A clean Kivy dashboard directly on your Android device displaying the local WiFi IP
+                        address and a real-time HTTP interaction log.</p>
+                </div>
+                <div class="feature-card">
+                    <h3 class="card-title">Native Integration</h3>
+                    <p class="body">Bridges Python natively to Android Java APIs (`SmsManager`) using PyJNIus. Includes
+                        persistent background notifications to keep the server alive.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container footer-grid">
+            <div>
+                <span class="eyebrow">Mobile SMS Server</span>
+                <p class="body-sm" style="max-width: 300px; margin-top: var(--spacing-md);">
+                    A lightweight, Python-powered local gateway to bridge native Android capabilities into your daily
+                    development workflow.
+                </p>
+            </div>
+
+            <div class="footer-links">
+                <div>
+                    <span class="eyebrow">Connect</span>
+                    <a href="https://github.com/abhishekmallav" target="_blank">GitHub</a>
+                    <a href="https://www.linkedin.com/in/abhishekmallav/" target="_blank">LinkedIn</a>
+                    <a href="https://abhishekmallav.github.io/portfolio/" target="_blank">Portfolio</a>
+                </div>
+                <div>
+                    <span class="eyebrow">Social</span>
+                    <a href="https://x.com/abhishekmallav" target="_blank">X (Twitter)</a>
+                    <a href="https://instagram.com/abhishekmallav" target="_blank">Instagram</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+</body>
+
+</html>
