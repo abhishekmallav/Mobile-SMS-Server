@@ -35,6 +35,8 @@ class RoundedButton(Button):
             Color(rgba=self.bg_color)
             
     def on_disabled(self, instance, value):
+        if self.canvas is None or self.canvas.before is None:
+            return
         self.canvas.before.clear()
         with self.canvas.before:
             if value: # is disabled
