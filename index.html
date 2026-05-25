@@ -5,11 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mobile SMS Server</title>
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23F3F4F6'%3E%3Cpath d='M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z'/%3E%3C/svg%3E">
     <!-- Using Inter font as a substitute for hashicorpSans per DESIGN.md -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Brand & Surface Colors */
+            /* Brand & Surface Colors (Dark Theme - Default) */
             --colors-canvas: #000000;
             --colors-surface-1: #1a1b1e;
             --colors-surface-2: #25282c;
@@ -24,7 +26,6 @@
 
             /* Product Identity / Accent */
             --colors-product-accent: #6366f1;
-            /* Matching the purple identity aesthetic */
 
             /* Typography */
             --font-family: 'Inter', -apple-system, BlinkMacSystemFont, Segoe UI, helvetica, arial, sans-serif;
@@ -42,6 +43,22 @@
             --rounded-md: 8px;
             --rounded-lg: 12px;
             --rounded-pill: 9999px;
+        }
+
+        :root[data-theme="light"] {
+            /* Light Theme Overrides */
+            --colors-canvas: #ffffff;
+            --colors-surface-1: #f3f4f6;
+            --colors-surface-2: #e5e7eb;
+            --colors-hairline: rgba(0, 0, 0, 0.1);
+            --colors-inverse-canvas: #000000;
+
+            --colors-ink: #111827;
+            --colors-ink-muted: #4b5563;
+            --colors-ink-subtle: #6b7280;
+            --colors-inverse-ink: #ffffff;
+
+            --colors-product-accent: #4f46e5;
         }
 
         * {
@@ -264,14 +281,39 @@
         .footer-links a {
             color: var(--colors-ink-muted);
             font-size: 14px;
-            display: block;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             margin-bottom: var(--spacing-sm);
+            transition: color 0.1s;
         }
 
         .footer-links a:hover {
             color: var(--colors-ink);
         }
+
+        /* Theme Toggle Button */
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: var(--colors-ink);
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--rounded-md);
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--colors-surface-1);
+        }
     </style>
+    <script>
+        // Check local storage for theme preference, and apply immediately
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
 </head>
 
 <body>
@@ -279,7 +321,12 @@
     <div class="container">
         <nav>
             <div class="logo">Mobile SMS Server</div>
-            <div class="nav-links">
+            <div class="nav-links" style="display: flex; gap: 16px; align-items: center;">
+                <button class="theme-toggle" id="themeToggle" aria-label="Toggle Theme">
+                    <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round"></svg>
+                </button>
                 <a href="https://github.com/Mobile-SMS-Server" class="button button-secondary">GitHub Repository</a>
             </div>
         </nav>
@@ -355,30 +402,102 @@
 
     <footer>
         <div class="container footer-grid">
-            <div>
-                <span class="eyebrow">Mobile SMS Server</span>
-                <p class="body-sm" style="max-width: 300px; margin-top: var(--spacing-md);">
-                    A lightweight, Python-powered local gateway to bridge native Android capabilities into your daily
-                    development workflow.
+            <div style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <span class="eyebrow">Mobile SMS Server</span>
+                    <p class="body-sm" style="max-width: 300px; margin-top: var(--spacing-md);">
+                        A lightweight, Python-powered local gateway to bridge native Android capabilities into your
+                        daily
+                        development workflow.
+                    </p>
+                </div>
+                <p class="body-sm" style="margin-top: var(--spacing-xxl);">
+                    &copy; 2025 Abhishek Mallav. Curious by nature, Engineer by craft.
                 </p>
             </div>
 
             <div class="footer-links">
                 <div>
                     <span class="eyebrow">Connect</span>
-                    <a href="https://github.com/abhishekmallav" target="_blank">GitHub</a>
-                    <a href="https://www.linkedin.com/in/abhishekmallav/" target="_blank">LinkedIn</a>
-                    <a href="https://abhishekmallav.github.io/portfolio/" target="_blank">Portfolio</a>
+                    <a href="https://github.com/abhishekmallav" target="_blank">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M15 22v-4a4.8 4.8 0 0 0-1-3.02c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A4.8 4.8 0 0 0 8 18v4" />
+                            <path d="M12 18v4" />
+                            <path d="M12 18c0-3.31-2.69-6-6-6" />
+                        </svg>
+                        GitHub
+                    </a>
+                    <a href="https://www.linkedin.com/in/abhishekmallav/" target="_blank">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+                            <rect width="4" height="12" x="2" y="9" />
+                            <circle cx="4" cy="4" r="2" />
+                        </svg>
+                        LinkedIn
+                    </a>
+                    <a href="https://abhishekmallav.github.io/portfolio/" target="_blank">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="2" x2="22" y1="12" y2="12" />
+                            <path
+                                d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                        </svg>
+                        Portfolio
+                    </a>
                 </div>
                 <div>
                     <span class="eyebrow">Social</span>
-                    <a href="https://x.com/abhishekmallav" target="_blank">X (Twitter)</a>
-                    <a href="https://instagram.com/abhishekmallav" target="_blank">Instagram</a>
+                    <a href="https://x.com/abhishekmallav" target="_blank">
+                        <!-- X/Twitter logo -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 4l11.733 16h4.267l-11.733 -16z" />
+                            <path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772" />
+                        </svg>
+                        X (Twitter)
+                    </a>
+                    <a href="https://instagram.com/abhishekmallav" target="_blank">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+                            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                            <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+                        </svg>
+                        Instagram
+                    </a>
                 </div>
             </div>
         </div>
     </footer>
 
+    <script>
+        // Theme toggling logic
+        const constThemeToggleBtn = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+
+        const moonPath = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+        const sunPath = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+
+        function setIcon(theme) {
+            themeIcon.innerHTML = theme === 'light' ? moonPath : sunPath;
+        }
+
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+        setIcon(currentTheme);
+
+        constThemeToggleBtn.addEventListener('click', () => {
+            const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+            const newTheme = isLight ? 'dark' : 'light';
+
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            setIcon(newTheme);
+        });
+    </script>
 </body>
 
 </html>
