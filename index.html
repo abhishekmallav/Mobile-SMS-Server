@@ -183,6 +183,33 @@
             border: 1px solid var(--colors-hairline);
         }
 
+        .nav-links a.button {
+            padding: 10px 14px;
+            background-color: rgba(255, 255, 255, 0.04);
+            color: var(--colors-ink-muted);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+        }
+
+        .nav-links a.button:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+            color: var(--colors-ink);
+            border-color: rgba(255, 255, 255, 0.14);
+            opacity: 1;
+        }
+
+        :root[data-theme="light"] .nav-links a.button {
+            background-color: rgba(17, 24, 39, 0.04);
+            color: var(--colors-ink-muted);
+            border-color: rgba(17, 24, 39, 0.08);
+        }
+
+        :root[data-theme="light"] .nav-links a.button:hover {
+            background-color: rgba(17, 24, 39, 0.08);
+            color: var(--colors-ink);
+            border-color: rgba(17, 24, 39, 0.14);
+        }
+
         /* Hero */
         .hero {
             padding: var(--spacing-section) 0;
@@ -322,8 +349,8 @@
         <nav>
             <div class="logo">Mobile SMS Server</div>
             <div class="nav-links" style="display: flex; gap: 16px; align-items: center;">
-                <a href="#about" class="button button-secondary">About</a>
                 <a href="#download" class="button button-secondary">Download</a>
+                <a href="#about" class="button button-secondary">About</a>
                 <a href="#features" class="button button-secondary">Features</a>
                 <a href="#connect" class="button button-secondary">Connect</a>
                 <button class="theme-toggle" id="themeToggle" aria-label="Toggle Theme">
@@ -331,7 +358,6 @@
                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                         stroke-linejoin="round"></svg>
                 </button>
-                <a href="https://github.com/abhishekmallav/Mobile-SMS-Server" class="button button-secondary">GitHub Repository</a>
             </div>
         </nav>
     </div>
