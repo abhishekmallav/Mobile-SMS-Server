@@ -1,533 +1,232 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Turn an Android phone into a local SMS gateway. Send messages from your development environment using a Python-powered HTTP API.">
+    <meta name="color-scheme" content="dark light">
     <title>Mobile SMS Server</title>
-    <link rel="icon" type="image/svg+xml"
-        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23F3F4F6'%3E%3Cpath d='M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z'/%3E%3C/svg%3E">
-    <!-- Using Inter font as a substitute for hashicorpSans per DESIGN.md -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23F3F4F6'%3E%3Cpath d='M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z'/%3E%3C/svg%3E">
+    <script>
+        let theme = 'dark';
+        try {
+            const storedTheme = localStorage.getItem('theme');
+            if (storedTheme === 'light' || storedTheme === 'dark') theme = storedTheme;
+        } catch {}
+        document.documentElement.dataset.theme = theme;
+    </script>
     <style>
+        /* Indigo marks the download and API methods; neutral surfaces keep technical details quiet.
+           System sans matches the Android utility; monospace is reserved for literal API syntax.
+           Open sections separate intent, setup, and implementation without repeated card grids.
+           ENERGY 1 / RHYTHM 2 / MOTION 1: restrained type, varied composition, state feedback only. */
         :root {
-            /* Brand & Surface Colors (Dark Theme - Default) */
-            --colors-canvas: #000000;
-            --colors-surface-1: #1a1b1e;
-            --colors-surface-2: #25282c;
-            --colors-hairline: rgba(178, 182, 189, 0.1);
-            --colors-inverse-canvas: #ffffff;
-
-            /* Text Colors */
-            --colors-ink: #ffffff;
-            --colors-ink-muted: #b2b6bd;
-            --colors-ink-subtle: #656a76;
-            --colors-inverse-ink: #000000;
-
-            /* Product Identity / Accent */
-            --colors-product-accent: #6366f1;
-
-            /* Typography */
-            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, Segoe UI, helvetica, arial, sans-serif;
-
-            /* Spacing */
-            --spacing-xs: 8px;
-            --spacing-sm: 12px;
-            --spacing-md: 16px;
-            --spacing-lg: 24px;
-            --spacing-xl: 32px;
-            --spacing-xxl: 48px;
-            --spacing-section: 96px;
-
-            /* Radii */
-            --rounded-md: 8px;
-            --rounded-lg: 12px;
-            --rounded-pill: 9999px;
+            color-scheme: dark;
+            --canvas: #111315; --surface: #1b1e22; --ink: #f1f2f4; --muted: #b0b6c0;
+            --line: #424852; --accent: #b3b9ff; --action: #bec3ff; --action-ink: #191c42; --hover: #292e35;
         }
-
         :root[data-theme="light"] {
-            /* Light Theme Overrides */
-            --colors-canvas: #ffffff;
-            --colors-surface-1: #f3f4f6;
-            --colors-surface-2: #e5e7eb;
-            --colors-hairline: rgba(0, 0, 0, 0.1);
-            --colors-inverse-canvas: #000000;
-
-            --colors-ink: #111827;
-            --colors-ink-muted: #4b5563;
-            --colors-ink-subtle: #6b7280;
-            --colors-inverse-ink: #ffffff;
-
-            --colors-product-accent: #4f46e5;
+            color-scheme: light;
+            --canvas: #fafaf8; --surface: #eeefec; --ink: #20242b; --muted: #515964;
+            --line: #a0a6af; --accent: #414ab1; --action: #414ab1; --action-ink: #ffffff; --hover: #e0e2df;
         }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
+        * { box-sizing: border-box; }
+        body { margin: 0; background: var(--canvas); color: var(--ink); font: 400 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+        h1, h2, h3, p { margin: 0; }
+        h1, h2, h3 { line-height: 1.15; }
+        a { color: inherit; text-underline-offset: 5px; }
+        a, button { -webkit-tap-highlight-color: transparent; }
+        a:hover { color: var(--accent); }
+        a:active { opacity: .75; }
+        :focus-visible { outline: 3px solid var(--accent); outline-offset: 5px; }
+        button:disabled { opacity: .5; cursor: not-allowed; }
+        .container { width: min(1120px, calc(100% - 80px)); margin-inline: auto; }
+        .skip-link { position: absolute; top: 12px; left: 12px; z-index: 1; padding: 10px 16px; background: var(--action); color: var(--action-ink); transform: translateY(-180%); }
+        .skip-link:focus { transform: none; }
+        .site-header { border-bottom: 1px solid var(--line); }
+        nav { min-height: 88px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+        .wordmark { font-size: 18px; font-weight: 700; letter-spacing: -.5px; white-space: nowrap; }
+        .nav-links { display: flex; align-items: center; gap: 6px; }
+        .nav-links a { display: inline-flex; align-items: center; min-height: 44px; padding: 10px 12px; text-decoration: none; font-size: 14px; color: var(--muted); }
+        .nav-links a:hover { color: var(--ink); background: var(--surface); }
+        .theme-toggle { min-height: 44px; padding: 8px 12px; margin-left: 12px; border: 1px solid var(--line); border-radius: 4px; background: transparent; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
+        .theme-toggle:hover { background: var(--hover); }
+        .theme-toggle:active { background: var(--surface); }
+        section, footer { scroll-margin-top: 24px; }
+        .hero { display: grid; grid-template-columns: 1.35fr 1fr; gap: 72px; align-items: end; padding-block: 100px 88px; }
+        h1 { max-width: 700px; font-size: clamp(40px, 4.8vw, 64px); font-weight: 650; letter-spacing: -.055em; }
+        .hero-copy { max-width: 580px; margin-top: 28px; font-size: 18px; color: var(--muted); }
+        .hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 32px; }
+        .button { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; padding: 11px 20px; border: 1px solid var(--line); border-radius: 4px; font-size: 14px; font-weight: 650; text-decoration: none; }
+        .button-primary { background: var(--action); color: var(--action-ink); border-color: var(--action); }
+        .button-primary:hover { color: var(--action-ink); filter: brightness(1.08); }
+        .button-secondary:hover { color: var(--ink); background: var(--hover); }
+        .download-note { margin-top: 16px; font-size: 13px; color: var(--muted); }
+        .connection { padding-bottom: 4px; }
+        .connection h2 { font-size: 17px; font-weight: 600; margin-bottom: 24px; }
+        .connection dl { margin: 0; }
+        .connection dl > div { padding-block: 16px; border-top: 1px solid var(--line); }
+        .connection dt { color: var(--muted); font-size: 13px; margin-bottom: 4px; }
+        .connection dd { margin: 0; font-size: 16px; }
+        code, pre { font-family: ui-monospace, "Cascadia Code", "Liberation Mono", monospace; }
+        code { font-size: .9em; }
+        .section { border-top: 1px solid var(--line); padding-block: 64px 72px; }
+        .section-label { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+        h2 { font-size: clamp(28px, 3vw, 38px); font-weight: 600; letter-spacing: -.035em; }
+        .about-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 96px; }
+        .about-intro p { margin-top: 24px; color: var(--muted); max-width: 450px; }
+        .benefits { margin: 0; }
+        .benefits > div + div { margin-top: 28px; }
+        .benefits dt { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+        .benefits dd { margin: 0; color: var(--muted); }
+        .api-intro { display: flex; justify-content: space-between; align-items: end; gap: 32px; margin-bottom: 32px; }
+        .api-intro p { max-width: 360px; color: var(--muted); }
+        .api-reference { background: var(--surface); border-radius: 6px; padding: 32px; }
+        .endpoint { display: flex; align-items: baseline; flex-wrap: wrap; gap: 12px; }
+        .method { color: var(--accent); font-size: 13px; font-weight: 700; }
+        .endpoint code { font-size: 18px; }
+        .api-reference p { color: var(--muted); margin-top: 16px; }
+        pre { margin: 24px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.85; }
+        .api-reference .example-note { font-size: 13px; margin-top: 20px; }
+        .implementation { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin-top: 36px; }
+        h3 { font-size: 18px; font-weight: 600; margin-bottom: 12px; }
+        .implementation p { color: var(--muted); }
+        footer { border-top: 1px solid var(--line); padding-block: 48px 32px; }
+        .footer-top { display: flex; justify-content: space-between; gap: 48px; }
+        .footer-description { max-width: 380px; color: var(--muted); font-size: 14px; margin-top: 12px; }
+        .footer-links { display: flex; flex-wrap: wrap; align-content: start; gap: 0 20px; max-width: 380px; }
+        .footer-links a { display: inline-flex; align-items: center; min-height: 44px; color: var(--muted); font-size: 14px; }
+        .footer-links a:hover { color: var(--ink); }
+        .copyright { margin-top: 40px; color: var(--muted); font-size: 13px; }
+        @media (max-width: 900px) {
+            .container { width: calc(100% - 48px); }
+            nav { flex-wrap: wrap; gap: 8px; padding-block: 18px 10px; }
+            .nav-links { flex-wrap: wrap; }
+            .nav-links a:first-child { padding-left: 0; }
+            .hero { gap: 40px; padding-block: 64px; grid-template-columns: 1.3fr 1fr; }
+            .about-layout { gap: 40px; }
         }
-
-        body {
-            background-color: var(--colors-canvas);
-            color: var(--colors-ink);
-            font-family: var(--font-family);
-            font-weight: 500;
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
+        @media (max-width: 640px) {
+            .container { width: calc(100% - 40px); }
+            nav { align-items: start; }
+            .wordmark { padding-block: 8px; }
+            .nav-links { width: 100%; gap: 0; justify-content: space-between; }
+            .nav-links a { padding-inline: 7px; font-size: 13px; }
+            .theme-toggle { margin-left: 4px; padding-inline: 9px; }
+            .hero { grid-template-columns: 1fr; gap: 48px; padding-block: 48px; }
+            h1 { max-width: 450px; }
+            .hero-copy { font-size: 17px; margin-top: 24px; }
+            .connection dl > div { display: grid; grid-template-columns: 90px 1fr; gap: 16px; }
+            .connection dt { margin: 0; }
+            .section { padding-block: 40px 48px; }
+            .about-layout, .implementation { grid-template-columns: 1fr; gap: 32px; }
+            .api-intro, .footer-top { display: flex; flex-direction: column; align-items: start; gap: 24px; }
+            .api-reference { padding: 24px 20px; }
+            .api-intro p { max-width: none; }
+            .copyright { margin-top: 28px; }
         }
-
-        a {
-            color: inherit;
-            text-decoration: none;
-        }
-
-        /* Typography Hierarchy */
-        .display-lg {
-            font-size: 56px;
-            font-weight: 700;
-            line-height: 1.18;
-            letter-spacing: -1.6px;
-        }
-
-        .display-md {
-            font-size: 40px;
-            font-weight: 600;
-            line-height: 1.19;
-            letter-spacing: -1.0px;
-        }
-
-        .body-lg {
-            font-size: 18px;
-            font-weight: 500;
-            line-height: 1.69;
-            color: var(--colors-ink-muted);
-        }
-
-        .body {
-            font-size: 16px;
-            font-weight: 500;
-            line-height: 1.50;
-        }
-
-        .body-sm {
-            font-size: 14px;
-            font-weight: 500;
-            line-height: 1.71;
-            color: var(--colors-ink-muted);
-        }
-
-        .eyebrow {
-            font-size: 12px;
-            font-weight: 600;
-            line-height: 1.23;
-            letter-spacing: 0.6px;
-            text-transform: uppercase;
-            color: var(--colors-ink-muted);
-            margin-bottom: var(--spacing-sm);
-            display: block;
-        }
-
-        /* Layout Grid */
-        .container {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 0 var(--spacing-xxl);
-        }
-
-        .section {
-            margin-top: var(--spacing-section);
-            margin-bottom: var(--spacing-section);
-        }
-
-        /* Navigation */
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 64px;
-            border-bottom: 1px solid var(--colors-hairline);
-        }
-
-        .logo {
-            font-weight: 700;
-            font-size: 18px;
-            letter-spacing: -0.5px;
-        }
-
-        /* Buttons */
-        .button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            font-weight: 600;
-            line-height: 1.29;
-            padding: 12px 20px;
-            border-radius: var(--rounded-md);
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-
-        .button:hover {
-            opacity: 0.9;
-        }
-
-        .button-primary {
-            background-color: var(--colors-inverse-canvas);
-            color: var(--colors-inverse-ink);
-        }
-
-        .button-secondary {
-            background-color: var(--colors-surface-2);
-            color: var(--colors-ink);
-            border: 1px solid var(--colors-hairline);
-        }
-
-        .nav-links a.button {
-            padding: 10px 14px;
-            background-color: rgba(255, 255, 255, 0.04);
-            color: var(--colors-ink-muted);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            transition: background-color 0.2s, color 0.2s, border-color 0.2s;
-        }
-
-        .nav-links a.button:hover {
-            background-color: rgba(255, 255, 255, 0.08);
-            color: var(--colors-ink);
-            border-color: rgba(255, 255, 255, 0.14);
-            opacity: 1;
-        }
-
-        :root[data-theme="light"] .nav-links a.button {
-            background-color: rgba(17, 24, 39, 0.04);
-            color: var(--colors-ink-muted);
-            border-color: rgba(17, 24, 39, 0.08);
-        }
-
-        :root[data-theme="light"] .nav-links a.button:hover {
-            background-color: rgba(17, 24, 39, 0.08);
-            color: var(--colors-ink);
-            border-color: rgba(17, 24, 39, 0.14);
-        }
-
-        /* Hero */
-        .hero {
-            padding: var(--spacing-section) 0;
-            text-align: center;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .hero h1 {
-            margin-bottom: var(--spacing-lg);
-        }
-
-        .hero p {
-            margin-bottom: var(--spacing-xl);
-        }
-
-        .hero-actions {
-            display: flex;
-            gap: var(--spacing-lg);
-            justify-content: center;
-        }
-
-        /* Cards */
-        .grid-3 {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: var(--spacing-xl);
-        }
-
-        @media (max-width: 1024px) {
-            .grid-3 {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 768px) {
-            .grid-3 {
-                grid-template-columns: 1fr;
-            }
-
-            .container {
-                padding: 0 var(--spacing-lg);
-            }
-
-            .display-lg {
-                font-size: 40px;
-            }
-        }
-
-        .feature-card {
-            background-color: var(--colors-surface-1);
-            border: 1px solid var(--colors-hairline);
-            border-radius: var(--rounded-lg);
-            padding: var(--spacing-lg);
-            display: flex;
-            flex-direction: column;
-            gap: var(--spacing-md);
-        }
-
-        .feature-card-accent {
-            background-color: var(--colors-product-accent);
-            color: var(--colors-inverse-ink);
-        }
-
-        .feature-card-accent p {
-            color: rgba(0, 0, 0, 0.8);
-        }
-
-        .card-title {
-            font-size: 22px;
-            font-weight: 600;
-            line-height: 1.18;
-            letter-spacing: -0.4px;
-        }
-
-        /* Footer */
-        footer {
-            background-color: var(--colors-canvas);
-            border-top: 1px solid var(--colors-hairline);
-            padding: 64px 0;
-            margin-top: var(--spacing-section);
-        }
-
-        .footer-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: var(--spacing-xl);
-        }
-
-        .footer-links {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: var(--spacing-lg);
-        }
-
-        .footer-links a {
-            color: var(--colors-ink-muted);
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: var(--spacing-sm);
-            transition: color 0.1s;
-        }
-
-        .footer-links a:hover {
-            color: var(--colors-ink);
-        }
-
-        /* Theme Toggle Button */
-        .theme-toggle {
-            background: none;
-            border: none;
-            color: var(--colors-ink);
-            cursor: pointer;
-            padding: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: var(--rounded-md);
-        }
-
-        .theme-toggle:hover {
-            background-color: var(--colors-surface-1);
+        @media (prefers-reduced-motion: no-preference) {
+            .button, .theme-toggle, .nav-links a { transition: background-color .15s, color .15s; }
         }
     </style>
-    <script>
-        // Check local storage for theme preference, and apply immediately
-        const savedTheme = localStorage.getItem('theme') || 'dark';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-    </script>
 </head>
-
 <body>
-
-    <div class="container">
-        <nav>
-            <div class="logo">Mobile SMS Server</div>
-            <div class="nav-links" style="display: flex; gap: 16px; align-items: center;">
-                <a href="#download" class="button button-secondary">Download</a>
-                <a href="#about" class="button button-secondary">About</a>
-                <a href="#features" class="button button-secondary">Features</a>
-                <a href="#connect" class="button button-secondary">Connect</a>
-                <button class="theme-toggle" id="themeToggle" aria-label="Toggle Theme">
-                    <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round"></svg>
-                </button>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+        <nav class="container" aria-label="Main navigation">
+            <div class="wordmark">Mobile SMS Server</div>
+            <div class="nav-links">
+                <a href="#download">Download</a>
+                <a href="#about">About</a>
+                <a href="#features">Features</a>
+                <a href="#connect">Connect</a>
+                <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to light theme">Light mode</button>
             </div>
         </nav>
-    </div>
-
-    <main class="container">
-        <!-- Hero Section -->
-        <section class="hero section" id="download">
-            <span class="eyebrow">Local Infrastructure</span>
-            <h1 class="display-lg">Turn your smartphone into a local SMS gateway.</h1>
-            <p class="body-lg">
-                Connect to your Android phone via REST API to programmatically send SMS messages over WiFi.
-                A free, 100% private alternative to cloud APIs, powered by Python, Kivy, and Flask.
-            </p>
-            <div class="hero-actions">
-                <a href="https://github.com/abhishekmallav/Mobile-SMS-Server" class="button button-primary">View on
-                    GitHub</a>
-                <a href="https://github.com/abhishekmallav/Mobile-SMS-Server/releases/download/v1.0/SMS.Server.v1.0.apk"
-                    class="button button-secondary">Download APK</a>
+    </header>
+    <main class="container" id="main" tabindex="-1">
+        <section class="hero" id="download" aria-labelledby="page-title">
+            <div>
+                <h1 id="page-title">Your phone.<br>Your SMS gateway.</h1>
+                <p class="hero-copy">Send SMS from your code through an Android phone on your WiFi network. A local HTTP API, powered by Python, Kivy, and Flask.</p>
+                <div class="hero-actions">
+                    <a class="button button-primary" href="https://github.com/abhishekmallav/Mobile-SMS-Server/releases/download/v1.0/SMS.Server.v1.0.apk">Download Android APK</a>
+                    <a class="button button-secondary" href="https://github.com/abhishekmallav/Mobile-SMS-Server">View source on GitHub</a>
+                </div>
+                <p class="download-note">Uses your phone’s SMS plan. Carrier charges and limits apply.</p>
+            </div>
+            <aside class="connection" aria-labelledby="connection-title">
+                <h2 id="connection-title">From your code to your SIM.</h2>
+                <dl>
+                    <div><dt>Connect</dt><dd>Computer and phone on the same WiFi</dd></div>
+                    <div><dt>Request</dt><dd><code>POST /api/sms</code> with JSON</dd></div>
+                    <div><dt>Send</dt><dd>Android’s native SMS service</dd></div>
+                </dl>
+            </aside>
+        </section>
+        <section class="section" id="about" aria-labelledby="about-title">
+            <p class="section-label">Why a local gateway</p>
+            <div class="about-layout">
+                <div class="about-intro">
+                    <h2 id="about-title">Put your phone plan<br>to work in development.</h2>
+                    <p>Test verification messages and server alerts with the Android device you already have. Start the server on your phone, then send requests from your development environment.</p>
+                </div>
+                <dl class="benefits">
+                    <div><dt>Use your existing SMS allowance</dt><dd>Messages are sent through your SIM rather than a paid cloud SMS API. Your mobile plan determines the cost.</dd></div>
+                    <div><dt>Keep the API on your network</dt><dd>Your computer talks directly to the Flask server on your phone. No cloud SMS provider sits between your code and the device.</dd></div>
+                    <div><dt>Bring your usual HTTP tools</dt><dd>Call the API from curl, Python requests, or Postman. Send a number and a message as JSON.</dd></div>
+                </dl>
             </div>
         </section>
-
-        <!-- Use Case Section -->
-        <section class="section" id="about">
-            <span class="eyebrow">The Intuition</span>
-            <h2 class="display-md" style="margin-bottom: var(--spacing-xl);">Why pay for cloud SMS APIs when you already
-                have a phone plan?</h2>
-
-            <div class="grid-3">
-                <div class="feature-card feature-card-accent">
-                    <h3 class="card-title">Zero Cloud Costs</h3>
-                    <p class="body">During feature development, developers often need to test automated SMS messages.
-                        Utilize your unused mobile recharge SMS quotas instead of getting charged per message by cloud
-                        platforms.</p>
-                </div>
-                <div class="feature-card">
-                    <h3 class="card-title">100% Local & Private</h3>
-                    <p class="body">The app operates entirely on your local network. No external servers involved,
-                        keeping all your data and phone numbers off third-party databases.</p>
-                </div>
-                <div class="feature-card">
-                    <h3 class="card-title">Developer Ready</h3>
-                    <p class="body">With a built-in Flask background service, it exposes standard HTTP POST REST
-                        endpoints directly from your phone to your local dev environment.</p>
-                </div>
+        <section class="section" id="features" aria-labelledby="features-title">
+            <p class="section-label">Working with the API</p>
+            <div class="api-intro">
+                <h2 id="features-title">One request.<br>A message from your phone.</h2>
+                <p>Open the app, tap Start Server, and use the WiFi IP address shown on the phone.</p>
             </div>
-        </section>
-
-        <!-- Features Showcase -->
-        <section class="section" id="features">
-            <span class="eyebrow">Core Features</span>
-            <h2 class="display-md" style="margin-bottom: var(--spacing-xl);">Engineered for local networking</h2>
-
-            <div class="grid-3">
-                <div class="feature-card">
-                    <h3 class="card-title">RESTful API</h3>
-                    <p class="body">Simple `POST /api/sms` bindings expecting JSON payloads. Easy to integrate via curl,
-                        requests, or Postman.</p>
-                </div>
-                <div class="feature-card">
-                    <h3 class="card-title">Interactive UI</h3>
-                    <p class="body">A clean Kivy dashboard directly on your Android device displaying the local WiFi IP
-                        address and a real-time HTTP interaction log.</p>
-                </div>
-                <div class="feature-card">
-                    <h3 class="card-title">Native Integration</h3>
-                    <p class="body">Bridges Python natively to Android Java APIs (`SmsManager`) using PyJNIus. Includes
-                        persistent background notifications to keep the server alive.</p>
-                </div>
+            <div class="api-reference">
+                <div class="endpoint"><span class="method">POST</span><code>/api/sms</code></div>
+                <p>Provide <code>number</code> and <code>message</code> in the request body.</p>
+                <pre aria-label="Example SMS API request"><code>curl -X POST 'http://&lt;PHONE_IP&gt;:5000/api/sms' \
+  -H 'Content-Type: application/json' \
+  -d '{"number":"&lt;RECIPIENT_NUMBER&gt;","message":"&lt;MESSAGE&gt;"}'</code></pre>
+                <p class="example-note">Request template: replace the bracketed values before running. Check connectivity with <code>GET /api/test</code>.</p>
+            </div>
+            <div class="implementation">
+                <div><h3>See requests on the device</h3><p>The Kivy interface displays the phone’s local IP address and HTTP request logs, so you can follow requests as you test.</p></div>
+                <div><h3>Built on Android’s SMS APIs</h3><p>PyJNIus bridges Python to <code>SmsManager</code>. The Flask server runs in a background thread with an Android notification.</p></div>
             </div>
         </section>
     </main>
-
     <footer id="connect">
-        <div class="container footer-grid">
-            <div style="display: flex; flex-direction: column; justify-content: space-between;">
-                <div>
-                    <span class="eyebrow">Mobile SMS Server</span>
-                    <p class="body-sm" style="max-width: 300px; margin-top: var(--spacing-md);">
-                        A lightweight, Python-powered local gateway to bridge native Android capabilities into your
-                        daily
-                        development workflow.
-                    </p>
-                </div>
-                <p class="body-sm" style="margin-top: var(--spacing-xxl);">
-                    &copy; 2026 Abhishek Mallav. Curious by nature, Engineer by craft.
-                </p>
-            </div>
-
-            <div class="footer-links">
-                <div>
-                    <span class="eyebrow">Connect</span>
-                    <a href="https://github.com/abhishekmallav" target="_blank">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path
-                                d="M15 22v-4a4.8 4.8 0 0 0-1-3.02c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A4.8 4.8 0 0 0 8 18v4" />
-                            <path d="M12 18v4" />
-                            <path d="M12 18c0-3.31-2.69-6-6-6" />
-                        </svg>
-                        GitHub
-                    </a>
-                    <a href="https://www.linkedin.com/in/abhishekmallav/" target="_blank">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
-                            <rect width="4" height="12" x="2" y="9" />
-                            <circle cx="4" cy="4" r="2" />
-                        </svg>
-                        LinkedIn
-                    </a>
-                    <a href="https://abhishekmallav.github.io/portfolio/" target="_blank">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10" />
-                            <line x1="2" x2="22" y1="12" y2="12" />
-                            <path
-                                d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                        </svg>
-                        Portfolio
-                    </a>
-                </div>
-                <div>
-                    <span class="eyebrow">Social</span>
-                    <a href="https://x.com/abhishekmallav" target="_blank">
-                        <!-- X/Twitter logo -->
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M4 4l11.733 16h4.267l-11.733 -16z" />
-                            <path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772" />
-                        </svg>
-                        X (Twitter)
-                    </a>
-                    <a href="https://instagram.com/abhishekmallav" target="_blank">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-                            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                            <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-                        </svg>
-                        Instagram
-                    </a>
+        <div class="container">
+            <div class="footer-top">
+                <div><p class="wordmark">Mobile SMS Server</p><p class="footer-description">An Android phone, a Python server, and an HTTP connection to your development environment.</p></div>
+                <div class="footer-links" aria-label="Author links">
+                    <a href="https://github.com/abhishekmallav" target="_blank" rel="noopener noreferrer">GitHub</a>
+                    <a href="https://www.linkedin.com/in/abhishekmallav/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+                    <a href="https://abhishekmallav.github.io/portfolio/" target="_blank" rel="noopener noreferrer">Portfolio</a>
+                    <a href="https://x.com/abhishekmallav" target="_blank" rel="noopener noreferrer">X (Twitter)</a>
+                    <a href="https://instagram.com/abhishekmallav" target="_blank" rel="noopener noreferrer">Instagram</a>
                 </div>
             </div>
+            <p class="copyright">&copy; 2026 Abhishek Mallav</p>
         </div>
     </footer>
-
     <script>
-        // Theme toggling logic
-        const constThemeToggleBtn = document.getElementById('themeToggle');
-        const themeIcon = document.getElementById('themeIcon');
-
-        const moonPath = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
-        const sunPath = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
-
-        function setIcon(theme) {
-            themeIcon.innerHTML = theme === 'light' ? moonPath : sunPath;
+        const themeToggle = document.getElementById('themeToggle');
+        function updateThemeControl() {
+            const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+            themeToggle.textContent = nextTheme === 'light' ? 'Light mode' : 'Dark mode';
+            themeToggle.setAttribute('aria-label', `Switch to ${nextTheme} theme`);
         }
-
-        const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-        setIcon(currentTheme);
-
-        constThemeToggleBtn.addEventListener('click', () => {
-            const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-            const newTheme = isLight ? 'dark' : 'light';
-
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            setIcon(newTheme);
+        themeToggle.addEventListener('click', () => {
+            const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+            document.documentElement.dataset.theme = nextTheme;
+            try { localStorage.setItem('theme', nextTheme); } catch {}
+            updateThemeControl();
         });
+        updateThemeControl();
     </script>
 </body>
-
 </html>
